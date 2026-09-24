@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Ứng dụng quét mã vạch và QR code tự động lưu vào bộ nhớ, hỗ trợ âm thanh tít máy quét siêu nhạy">
+  <title>Máy Tít Mã Vạch - Quét & Tự Động Lưu</title>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Google Fonts & Phosphor Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 5v4M3 15v4M21 5v4M21 15v4M7 5v14M11 5v14M15 5v14M17 5v14"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Tít Mã Vạch</h1>
+          <span class="sub-text">Tự động lưu bộ nhớ</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btnSoundToggle" class="icon-btn active" title="Bật/Tắt âm tít" aria-label="Âm thanh tít">
+          <svg id="iconSoundOn" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+          <svg id="iconSoundOff" class="hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <line x1="23" y1="9" x2="17" y2="15"></line>
+            <line x1="17" y1="9" x2="23" y2="15"></line>
+          </svg>
+        </button>
+        <button id="btnSettingsToggle" class="icon-btn" title="Cài đặt" aria-label="Cài đặt">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Camera Viewport Section -->
+    <section class="scanner-section">
+      <div class="scanner-card">
+        <div class="video-wrapper" id="videoWrapper">
+          <video id="videoPreview" playsinline autoplay muted></video>
+          
+          <!-- Viewfinder overlay -->
+          <div class="viewfinder-overlay">
+            <div class="scan-frame" id="scanFrame">
+              <span class="corner tl"></span>
+              <span class="corner tr"></span>
+              <span class="corner bl"></span>
+              <span class="corner br"></span>
+              <div class="laser-line"></div>
+              <div class="scan-hint">Đặt mã vạch vào khung này</div>
+            </div>
+          </div>
+
+          <!-- Camera status / Permission request placeholder -->
+          <div id="cameraPlaceholder" class="camera-placeholder">
+            <div class="placeholder-content">
+              <div class="placeholder-icon">
+                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                  <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+              </div>
+              <h3 id="cameraStatusTitle">Cần cấp quyền Camera</h3>
+              <p id="cameraStatusDesc">Nhấn nút bên dưới để mở camera quét mã tự động.</p>
+              <button id="btnStartCamera" class="btn-primary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                Bật Camera Quét Mã
+              </button>
+            </div>
+          </div>
+
+          <!-- In-camera floating controls -->
+          <div class="camera-controls">
+            <button id="btnToggleFlash" class="cam-btn" title="Bật/Tắt đèn Flash" style="display: none;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              <span>Flash</span>
+            </button>
+            <button id="btnSwitchCamera" class="cam-btn" title="Đổi camera">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 10c0-4.418-3.582-8-8-8s-8 3.582-8 8c0 1.57.457 3.033 1.246 4.267L3 17h5v-5l-2.038 2.038A5.96 5.96 0 0 1 6 10c0-3.314 2.686-6 6-6s6 2.686 6 6c0 1.258-.389 2.426-1.05 3.393l1.442 1.442A7.95 7.95 0 0 0 20 10z"/>
+              </svg>
+              <span>Đổi cam</span>
+            </button>
+            <label class="cam-btn upload-btn" title="Quét từ ảnh">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <span>Chọn ảnh</span>
+              <input type="file" id="fileInput" accept="image/*" style="display: none;">
+            </label>
+          </div>
+        </div>
+
+        <!-- Latest Scanned Result Banner -->
+        <div id="latestResultBanner" class="latest-result-banner hidden">
+          <div class="result-badge">
+            <span class="badge-dot"></span>
+            <span>Vừa tít được</span>
+          </div>
+          <div class="result-value" id="latestResultValue">---</div>
+          <div class="result-meta" id="latestResultMeta">Đã lưu vào bộ nhớ & sao chép</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Stat Bar -->
+    <section class="stats-bar">
+      <div class="stat-pill">
+        <span class="stat-label">Tổng đã tít:</span>
+        <span class="stat-num" id="statTotalCount">0</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">Mã duy nhất:</span>
+        <span class="stat-num" id="statUniqueCount">0</span>
+      </div>
+      <div class="stats-actions">
+        <button id="btnCopyAll" class="btn-subtle" title="Sao chép toàn bộ danh sách">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          Copy tất cả
+        </button>
+        <button id="btnExportMenu" class="btn-subtle" title="Xuất file">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Xuất file
+        </button>
+      </div>
+    </section>
+
+    <!-- Scanned History Section -->
+    <section class="history-section">
+      <div class="history-header">
+        <h2>Lịch sử quét mã</h2>
+        <div class="history-tools">
+          <input type="text" id="searchInput" placeholder="Tìm mã..." class="search-input">
+          <button id="btnClearHistory" class="btn-danger-text" title="Xóa lịch sử">Xóa hết</button>
+        </div>
+      </div>
+
+      <div id="historyList" class="history-list">
+        <!-- Rendered items go here -->
+      </div>
+
+      <div id="emptyState" class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <path d="M3 5v4M3 15v4M21 5v4M21 15v4M7 5v14M11 5v14M15 5v14M17 5v14"/>
+        </svg>
+        <p>Chưa có mã nào được quét.</p>
+        <small>Hướng camera vào mã vạch trên áo hoặc tem nhãn để bắt đầu tít!</small>
+      </div>
+    </section>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Cài đặt quét</h3>
+          <button id="btnCloseSettings" class="close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <label class="setting-row">
+            <div class="setting-info">
+              <span class="setting-title">Âm thanh "Tít" khi quét</span>
+              <span class="setting-desc">Mô phỏng tiếng máy tính tiền siêu thị</span>
+            </div>
+            <input type="checkbox" id="setSound" class="toggle-switch" checked>
+          </label>
+
+          <label class="setting-row">
+            <div class="setting-info">
+              <span class="setting-title">Rung điện thoại khi tít</span>
+              <span class="setting-desc">Rung nhẹ phản hồi xúc giác</span>
+            </div>
+            <input type="checkbox" id="setVibrate" class="toggle-switch" checked>
+          </label>
+
+          <label class="setting-row">
+            <div class="setting-info">
+              <span class="setting-title">Tự sao chép vào bộ nhớ tạm</span>
+              <span class="setting-desc">Tự copy (Clipboard) để dán sang Zalo/App khác</span>
+            </div>
+            <input type="checkbox" id="setAutoClipboard" class="toggle-switch" checked>
+          </label>
+
+          <label class="setting-row">
+            <div class="setting-info">
+              <span class="setting-title">Chống quét lặp ngay lập tức</span>
+              <span class="setting-desc">Tránh quét liên tục cùng 1 mã trong 2 giây</span>
+            </div>
+            <input type="checkbox" id="setDuplicateDelay" class="toggle-switch" checked>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Export Dialog Dropdown / Sheet -->
+    <div id="exportModal" class="modal-backdrop hidden">
+      <div class="modal-card export-card">
+        <div class="modal-header">
+          <h3>Xuất dữ liệu đã quét</h3>
+          <button id="btnCloseExport" class="close-btn">&times;</button>
+        </div>
+        <div class="export-options">
+          <button id="btnExportTxt" class="export-btn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+            <div>
+              <strong>File Văn Bản (.TXT)</strong>
+              <span>Mỗi mã 1 dòng (dễ copy hàng loạt)</span>
+            </div>
+          </button>
+
+          <button id="btnExportCsv" class="export-btn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="3" y1="9" x2="21" y2="9"></line>
+              <line x1="3" y1="15" x2="21" y2="15"></line>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+              <line x1="15" y1="3" x2="15" y2="21"></line>
+            </svg>
+            <div>
+              <strong>File Excel / CSV (.CSV)</strong>
+              <span>Có ngày giờ, số lượng, định dạng bảng tính</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <!-- ZXing Barcode Decoder Library (Code128, Code39, EAN, UPC, QR, v.v.) -->
+  <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
