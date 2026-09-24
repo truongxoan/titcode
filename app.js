@@ -112,19 +112,68 @@ function showToast(message, duration = 2200) {
   }, duration);
 }
 
-// Khởi tạo Barcode Reader (ZXing)
+// Chuyển mã định dạng số sang tên định dạng dễ hiểu (QR Code, Code 128, EAN...)
+function getFormatName(format) {
+  if (format === undefined || format === null) return 'Mã vạch';
+  if (typeof format === 'string') return format;
+  if (window.ZXing && window.ZXing.BarcodeFormat) {
+    for (const [key, val] of Object.entries(window.ZXing.BarcodeFormat)) {
+      if (val === format) {
+        if (key === 'QR_CODE') return 'QR Code';
+        if (key === 'CODE_128') return 'Code 128';
+        if (key === 'CODE_39') return 'Code 39';
+        if (key === 'CODE_93') return 'Code 93';
+        if (key === 'EAN_13') return 'EAN-13';
+        if (key === 'EAN_8') return 'EAN-8';
+        if (key === 'UPC_A') return 'UPC-A';
+        if (key === 'UPC_E') return 'UPC-E';
+        if (key === 'DATA_MATRIX') return 'Data Matrix';
+        if (key === 'AZTEC') return 'Aztec';
+        if (key === 'PDF_417') return 'PDF 417';
+        if (key === 'ITF') return 'ITF';
+        if (key === 'CODABAR') return 'Codabar';
+        return key.replace(/_/g, ' ');
+      }
+    }
+  }
+  return 'Mã vạch';
+}
+
+// Khởi tạo Barcode & QR Reader (ZXing) hỗ trợ TẤT CẢ các loại mã
 let codeReader = null;
 
 function initBarcodeReader() {
   if (window.ZXing && window.ZXing.BrowserMultiFormatReader) {
-    codeReader = new window.ZXing.BrowserMultiFormatReader();
-    console.log('ZXing Barcode reader initialized successfully');
+    const hints = new Map();
+    const formats = [
+      // Mã 2D (QR Code, Ma trận dữ liệu...)
+      ZXing.BarcodeFormat.QR_CODE,
+      ZXing.BarcodeFormat.DATA_MATRIX,
+      ZXing.BarcodeFormat.AZTEC,
+      ZXing.BarcodeFormat.PDF_417,
+      // Mã 1D (Mã vạch tem quần áo, siêu thị, bưu tá...)
+      ZXing.BarcodeFormat.CODE_128,
+      ZXing.BarcodeFormat.CODE_39,
+      ZXing.BarcodeFormat.CODE_93,
+      ZXing.BarcodeFormat.EAN_13,
+      ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.UPC_A,
+      ZXing.BarcodeFormat.UPC_E,
+      ZXing.BarcodeFormat.CODABAR,
+      ZXing.BarcodeFormat.ITF
+    ];
+
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+
+    codeReader = new window.ZXing.BrowserMultiFormatReader(hints);
+    console.log('✅ Đã nạp thành công bộ giải mã QR Code & Tất cả mã vạch 1D/2D');
   } else {
     console.error('ZXing library not loaded yet');
   }
 }
 
-// Lấy danh sách camera và ưu tiên camera sau (environment/back)
+// Lấy danh sách camera và ưu tiên camera sau (cho cả iPhone, Android và Laptop)
 async function setupCameras() {
   try {
     if (!codeReader) initBarcodeReader();
@@ -132,18 +181,27 @@ async function setupCameras() {
     state.videoDevices = videoInputDevices;
 
     if (videoInputDevices.length === 0) {
-      document.getElementById('cameraStatusTitle').textContent = 'Không tìm thấy Camera';
-      document.getElementById('cameraStatusDesc').textContent = 'Vui lòng kiểm tra lại thiết bị hoặc quyền trên trình duyệt.';
+      document.getElementById('cameraStatusTitle').textContent = 'Chưa nhận diện Camera';
+      document.getElementById('cameraStatusDesc').textContent = 'Vui lòng nhấn nút Bật Camera để cấp quyền mở webcam/camera.';
       return;
     }
 
-    // Tìm camera sau (back / environment)
-    const backCamera = videoInputDevices.find(dev => {
+    // Tìm camera sau trên điện thoại (loại bỏ camera góc siêu rộng hoặc macro nếu có nhiều camera)
+    const backCameras = videoInputDevices.filter(dev => {
       const label = dev.label.toLowerCase();
       return label.includes('back') || label.includes('rear') || label.includes('sau') || label.includes('environment');
     });
 
-    state.selectedDeviceId = backCamera ? backCamera.deviceId : videoInputDevices[videoInputDevices.length - 1].deviceId;
+    if (backCameras.length > 0) {
+      const mainBack = backCameras.find(dev => {
+        const l = dev.label.toLowerCase();
+        return !l.includes('wide') && !l.includes('ultra') && !l.includes('tele') && !l.includes('macro');
+      }) || backCameras[0];
+      state.selectedDeviceId = mainBack.deviceId;
+    } else {
+      // Laptop/PC webcam hoặc điện thoại có 1 camera
+      state.selectedDeviceId = videoInputDevices[0].deviceId;
+    }
   } catch (err) {
     console.error('Error listing cameras:', err);
   }
@@ -151,12 +209,24 @@ async function setupCameras() {
 
 // Khởi động Camera và bắt đầu quét
 async function startCamera() {
-  // Kích hoạt audio context từ cử chỉ người dùng
   getAudioContext();
 
   try {
     if (!codeReader) initBarcodeReader();
-    if (!state.selectedDeviceId) {
+
+    // Mẹo cấp quyền an toàn cho iOS Safari & Android
+    if (!state.selectedDeviceId || state.videoDevices.length === 0) {
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          const tempStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' } },
+            audio: false
+          });
+          tempStream.getTracks().forEach(track => track.stop());
+        }
+      } catch (e) {
+        // Tiếp tục thử danh sách thiết bị
+      }
       await setupCameras();
     }
 
@@ -165,23 +235,22 @@ async function startCamera() {
 
     const videoElem = document.getElementById('videoPreview');
 
-    // Decode từ video stream
+    // Decode từ video stream hỗ trợ cả QR và tất cả mã vạch
     await codeReader.decodeFromVideoDevice(
       state.selectedDeviceId,
       videoElem,
       (result, err) => {
         if (result) {
-          handleScannedBarcode(result.getText());
+          const format = getFormatName(result.getBarcodeFormat());
+          handleScannedBarcode(result.getText(), format);
         }
         if (err && !(err instanceof ZXing.NotFoundException)) {
-          // Bỏ qua lỗi NotFound khi quét từng frame
+          // Bỏ qua lỗi frame rỗng
         }
       }
     );
 
     state.isCameraActive = true;
-
-    // Kiểm tra khả năng bật đèn Flash (Torch)
     setTimeout(checkTorchCapability, 600);
 
   } catch (err) {
@@ -263,7 +332,7 @@ async function toggleTorch() {
 async function scanFromImageBlob(blob) {
   if (!blob) return;
   getAudioContext();
-  showToast('🔍 Đang phân tích ảnh mã vạch...');
+  showToast('🔍 Đang phân tích ảnh mã vạch / QR Code...');
 
   const objectUrl = URL.createObjectURL(blob);
   const img = new Image();
@@ -276,8 +345,9 @@ async function scanFromImageBlob(blob) {
       try {
         const result = await codeReader.decodeFromImageUrl(objectUrl);
         if (result && result.getText()) {
-          handleScannedBarcode(result.getText());
-          showToast('✅ Tít mã thành công!');
+          const format = getFormatName(result.getBarcodeFormat());
+          handleScannedBarcode(result.getText(), format);
+          showToast(`✅ Đã tít: ${format}!`);
           URL.revokeObjectURL(objectUrl);
           return;
         }
@@ -310,8 +380,9 @@ async function scanFromImageBlob(blob) {
           const rotatedUrl = canvas.toDataURL('image/jpeg', 0.95);
           const result = await codeReader.decodeFromImageUrl(rotatedUrl);
           if (result && result.getText()) {
-            handleScannedBarcode(result.getText());
-            showToast(`✅ Tít mã thành công (xoay ${angle}°)!`);
+            const format = getFormatName(result.getBarcodeFormat());
+            handleScannedBarcode(result.getText(), format);
+            showToast(`✅ Đã tít: ${format} (xoay ${angle}°)!`);
             URL.revokeObjectURL(objectUrl);
             return;
           }
@@ -320,7 +391,7 @@ async function scanFromImageBlob(blob) {
         }
       }
 
-      showToast('⚠️ Không tìm thấy mã vạch trong ảnh này');
+      showToast('⚠️ Không tìm thấy mã vạch hoặc QR Code trong ảnh này');
     } catch (err) {
       console.error('Image scan failed:', err);
       showToast('⚠️ Lỗi khi phân tích ảnh');
@@ -342,8 +413,8 @@ async function scanFromImageFile(file) {
   return scanFromImageBlob(file);
 }
 
-// Xử lý khi bắt được một mã vạch
-function handleScannedBarcode(rawCode) {
+// Xử lý khi bắt được một mã vạch hoặc QR code
+function handleScannedBarcode(rawCode, formatName = 'Mã vạch') {
   const code = rawCode.trim();
   if (!code) return;
 
@@ -368,6 +439,9 @@ function handleScannedBarcode(rawCode) {
     const existing = state.scannedList[existingIndex];
     existing.count = (existing.count || 1) + 1;
     existing.timestamp = now;
+    if (formatName && formatName !== 'Mã vạch') {
+      existing.format = formatName;
+    }
     state.scannedList.splice(existingIndex, 1);
     state.scannedList.unshift(existing);
     playBeepSound('duplicate');
@@ -376,6 +450,7 @@ function handleScannedBarcode(rawCode) {
     const newItem = {
       id: 'code_' + now + '_' + Math.random().toString(36).substr(2, 4),
       code: code,
+      format: formatName,
       count: 1,
       timestamp: now
     };
@@ -394,9 +469,28 @@ function handleScannedBarcode(rawCode) {
   saveHistoryToStorage();
 
   // Cập nhật giao diện
-  updateLatestBanner(code, isDuplicate);
+  updateLatestBanner(code, isDuplicate, formatName);
   renderHistory();
   updateStats();
+}
+
+// Hiển thị banner vừa quét kèm loại mã
+function updateLatestBanner(code, isDuplicate, formatName = 'Mã vạch') {
+  const banner = document.getElementById('latestResultBanner');
+  const val = document.getElementById('latestResultValue');
+  const meta = document.getElementById('latestResultMeta');
+  const badge = banner.querySelector('.result-badge');
+
+  if (badge) {
+    badge.innerHTML = `<span class="badge-dot"></span><span>Vừa tít được [${escapeHtml(formatName)}]</span>`;
+  }
+
+  val.textContent = code;
+  meta.textContent = isDuplicate 
+    ? `⚠️ Đã quét lần ${(state.scannedList[0]?.count || 2)} • Đã lưu & cập nhật` 
+    : '✅ Đã lưu vào bộ nhớ máy & chép vào khay tạm';
+  
+  banner.classList.remove('hidden');
 }
 
 // Hiển thị banner vừa quét
@@ -529,6 +623,7 @@ function renderHistory(filterKeyword = '') {
           <span class="item-code" title="${escapeHtml(item.code)}">${escapeHtml(item.code)}</span>
           <div class="item-meta">
             <span>${formatTime(item.timestamp)}</span>
+            <span class="format-badge ${item.format === 'QR Code' ? 'format-qr' : ''}">${escapeHtml(item.format || 'Mã vạch')}</span>
             ${item.count > 1 ? `<span class="count-badge">${item.count} lần</span>` : ''}
           </div>
         </div>
@@ -620,7 +715,7 @@ function exportAsTxt() {
     showToast('Chưa có dữ liệu để xuất file');
     return;
   }
-  const content = state.scannedList.map(item => item.code).join('\r\n');
+  const content = state.scannedList.map(item => `${item.code} (${item.format || 'Mã vạch'})`).join('\r\n');
   downloadFile(content, `titcode_${getFormattedDate()}.txt`, 'text/plain;charset=utf-8');
   closeModals();
   showToast('Đã tải xuống file .TXT');
@@ -633,10 +728,10 @@ function exportAsCsv() {
     return;
   }
   // Thêm UTF-8 BOM (\uFEFF) để Excel hiển thị tiếng Việt chuẩn không lỗi font
-  let csv = '\uFEFF"STT","Mã Vạch (Barcode)","Số lần quét","Thời gian quét"\r\n';
+  let csv = '\uFEFF"STT","Mã Đã Quét","Loại Mã (QR/Barcode)","Số lần quét","Thời gian quét"\r\n';
   state.scannedList.forEach((item, idx) => {
     const timeStr = formatTime(item.timestamp);
-    csv += `"${idx + 1}","${item.code}","${item.count || 1}","${timeStr}"\r\n`;
+    csv += `"${idx + 1}","${item.code}","${item.format || 'Mã vạch'}","${item.count || 1}","${timeStr}"\r\n`;
   });
 
   downloadFile(csv, `titcode_${getFormattedDate()}.csv`, 'text/csv;charset=utf-8');

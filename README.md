@@ -6,24 +6,28 @@
 
 ## ✨ Tính Năng Nổi Bật
 
-1. **Âm thanh "TÍT" siêu nhạy**: Phát âm thanh bip chuẩn máy tính tiền siêu thị / POS mỗi khi nhận diện được mã.
-2. **Tự động lưu vào bộ nhớ**:
+1. **Quét TẤT CẢ các loại mã vạch & QR Code**:
+   - **Mã 2D**: QR Code, Data Matrix, Aztec, PDF 417.
+   - **Mã 1D**: Code 128 (chuẩn tem mác quần áo), Code 39, Code 93, EAN-13, EAN-8, UPC-A, UPC-E, Codabar, ITF.
+   - Hiển thị nhãn nhận diện từng loại mã (`[QR Code]`, `[Code 128]`...) ngay trên danh sách.
+2. **Giao diện thích ứng 100% mọi thiết bị**:
+   - **Điện thoại (iOS / Android)**: Tối ưu cho Safari & Chrome, hỗ trợ vùng khuyết tai thỏ / Dynamic Island (`safe-area-inset`), tự động ưu tiên camera sau chính nét nhất.
+   - **Máy tính / Laptop**: Bố cục 2 cột hiện đại chuẩn trạm làm việc (Workstation), camera cố định bên trái, bảng lịch sử mở rộng bên phải.
+   - **Máy tính bảng / Xoay ngang**: Tự động chia tỉ lệ màn hình linh hoạt.
+3. **Âm thanh "TÍT" siêu nhạy & Rung**: Phát âm thanh bip chuẩn máy tính tiền siêu thị / POS mỗi khi nhận diện được mã.
+4. **Tự động lưu vào bộ nhớ**:
    - Lưu ngay lập tức vào **Bộ nhớ máy (`localStorage`)**, tắt mạng hay tắt trình duyệt mở lại vẫn còn nguyên.
    - Tự động sao chép mã vừa tít vào **Khay nhớ tạm (Clipboard)** để bạn chỉ việc sang Zalo/Ghi chú/Sheet ấn Dán (Paste).
-3. **Chống quét lặp liên tục**: Tự động trì hoãn 2 giây với cùng 1 mã để không bị tít dồn 10 lần một lúc.
-4. **Đếm số lượng & Đánh dấu trùng**: Nếu quét lại mã cũ, hệ thống tự động tăng biến đếm số lần và phát âm báo kép.
-5. **Xuất file dễ dàng**:
-   - Xuất file **Excel (.CSV)** có tiếng Việt và ngày giờ chi tiết.
+5. **Dán ảnh & Kéo thả ảnh**:
+   - **Dán ảnh (Paste - Ctrl+V)**: Copy ảnh ở bất kỳ đâu rồi ấn `Ctrl + V` hoặc nút "Dán ảnh" để quét.
+   - **Kéo thả ảnh (Drag & Drop)**: Nắm kéo file ảnh thả thẳng vào màn hình để quét tức thì.
+   - **Tự động xoay đa hướng (0°, 90°, 180°, 270°)**: Nhận diện chuẩn xác cả những ảnh chụp tem áo thẳng đứng hay xoay ngang.
+6. **Chống quét lặp & Đếm số lượng**: Trì hoãn 2 giây với cùng 1 mã để không bị tít dồn; tự động tăng số lần đếm nếu quét lại mã cũ.
+7. **Xuất file dễ dàng**:
+   - Xuất file **Excel (.CSV)** có tiếng Việt, loại mã (QR/Barcode) và ngày giờ chi tiết.
    - Xuất file **Văn bản (.TXT)** mỗi mã 1 dòng.
    - Nút "Copy tất cả" một chạm.
-6. **Dán ảnh & Kéo thả ảnh (Mới)**:
-   - **Dán ảnh (Paste - Ctrl+V)**: Chỉ cần bấm copy ảnh (hoặc chụp màn hình) rồi ấn nút **"Dán ảnh"** hoặc nhấn phím `Ctrl + V` bất kỳ lúc nào để web tự động trích xuất mã vạch.
-   - **Kéo thả ảnh (Drag & Drop)**: Nắm kéo file ảnh từ máy tính hoặc tab khác thả thẳng vào màn hình để quét.
-   - **Tự động xoay đa hướng (0°, 90°, 180°, 270°)**: Giúp nhận diện chuẩn xác cả những ảnh chụp tem áo thẳng đứng hay xoay ngang.
-7. **Hỗ trợ công cụ kho**:
-   - Nút bật/tắt **Đèn Flash (Torch)** khi quét trong góc tối.
-   - Đổi camera Trước / Sau.
-   - Chọn file ảnh từ bộ sưu tập.
+8. **Hỗ trợ công cụ kho**: Bật/tắt đèn Flash, đổi camera Trước/Sau, tải ảnh từ bộ sưu tập.
 
 ---
 

@@ -18,9 +18,12 @@
   --radius-lg: 18px;
   --radius-md: 12px;
   --radius-sm: 8px;
-  --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 16px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
 }
 
 * {
@@ -30,14 +33,22 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   font-family: var(--font-main);
   background-color: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   justify-content: center;
   overflow-x: hidden;
+  touch-action: manipulation;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   background-image: 
     radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16, 185, 129, 0.15), transparent),
     radial-gradient(circle at 100% 100%, rgba(6, 182, 212, 0.08), transparent);
@@ -45,11 +56,12 @@ body {
 
 .app-container {
   width: 100%;
-  max-width: 520px;
+  max-width: 1140px;
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  padding: 14px 16px var(--safe-bottom) 16px;
+  padding: calc(10px + var(--safe-top)) calc(12px + var(--safe-right)) calc(14px + var(--safe-bottom)) calc(12px + var(--safe-left));
   gap: 14px;
 }
 
@@ -121,6 +133,57 @@ body {
 
 .icon-btn:active {
   transform: scale(0.94);
+}
+
+/* Main Responsive Layout */
+.app-main-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+}
+
+.layout-left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.layout-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+/* Quick Hints for Desktop / Keyboard users */
+.quick-hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hint-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.hint-item kbd {
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: #fff;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
 }
 
 /* Scanner Card */
@@ -655,6 +718,23 @@ body {
   font-weight: 700;
 }
 
+.format-badge {
+  background: rgba(99, 102, 241, 0.18);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  padding: 1px 7px;
+  border-radius: 6px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.format-badge.format-qr {
+  background: rgba(16, 185, 129, 0.18);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
 .item-actions {
   display: flex;
   align-items: center;
@@ -916,3 +996,93 @@ body {
 .hidden {
   display: none !important;
 }
+
+/* =========================================================
+   RESPONSIVE DESIGN (PC, Laptop, iPad, iOS, Android)
+   ========================================================= */
+
+/* Desktop & Laptop (>= 880px) */
+@media (min-width: 880px) {
+  .app-container {
+    padding: calc(16px + var(--safe-top)) 24px calc(24px + var(--safe-bottom)) 24px;
+    gap: 18px;
+  }
+
+  .app-main-layout {
+    display: grid;
+    grid-template-columns: minmax(380px, 1.05fr) minmax(420px, 1.15fr);
+    gap: 22px;
+    align-items: start;
+  }
+
+  .layout-left {
+    position: sticky;
+    top: 16px;
+    gap: 14px;
+  }
+
+  .history-list {
+    max-height: calc(100vh - 220px);
+    max-height: calc(100dvh - 220px);
+  }
+
+  .video-wrapper {
+    aspect-ratio: 16 / 10;
+  }
+}
+
+/* Tablets (640px to 879px) */
+@media (min-width: 640px) and (max-width: 879px) {
+  .app-container {
+    max-width: 680px;
+    padding: 16px 20px;
+  }
+
+  .video-wrapper {
+    aspect-ratio: 16 / 10;
+  }
+}
+
+/* Mobile Landscape (Xoay ngang điện thoại) */
+@media (max-width: 879px) and (orientation: landscape) and (max-height: 520px) {
+  .app-main-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .video-wrapper {
+    aspect-ratio: 16 / 9;
+  }
+
+  .history-list {
+    max-height: 180px;
+  }
+}
+
+/* Màn hình điện thoại nhỏ (< 390px) */
+@media (max-width: 390px) {
+  .app-container {
+    padding: calc(8px + var(--safe-top)) 8px calc(12px + var(--safe-bottom)) 8px;
+    gap: 10px;
+  }
+
+  .cam-btn {
+    padding: 6px 10px;
+    font-size: 0.72rem;
+    gap: 4px;
+  }
+
+  .cam-btn span {
+    font-size: 0.72rem;
+  }
+
+  .brand h1 {
+    font-size: 1.05rem;
+  }
+
+  .result-value {
+    font-size: 1.1rem;
+  }
+}
+

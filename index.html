@@ -55,149 +55,174 @@
       </div>
     </header>
 
-    <!-- Camera Viewport Section -->
-    <section class="scanner-section">
-      <div class="scanner-card">
-        <div class="video-wrapper" id="videoWrapper">
-          <video id="videoPreview" playsinline autoplay muted></video>
-          
-          <!-- Viewfinder overlay -->
-          <div class="viewfinder-overlay">
-            <div class="scan-frame" id="scanFrame">
-              <span class="corner tl"></span>
-              <span class="corner tr"></span>
-              <span class="corner bl"></span>
-              <span class="corner br"></span>
-              <div class="laser-line"></div>
-              <div class="scan-hint">Đặt mã vạch vào khung này</div>
-            </div>
-          </div>
-
-          <!-- Camera status / Permission request placeholder -->
-          <div id="cameraPlaceholder" class="camera-placeholder">
-            <div class="placeholder-content">
-              <div class="placeholder-icon">
-                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                  <circle cx="12" cy="13" r="4"></circle>
-                </svg>
+    <!-- Main Responsive Layout -->
+    <main class="app-main-layout">
+      <!-- Cột Trái: Khung ngắm Camera & Thông tin vừa quét -->
+      <div class="layout-left">
+        <!-- Camera Viewport Section -->
+        <section class="scanner-section">
+          <div class="scanner-card">
+            <div class="video-wrapper" id="videoWrapper">
+              <video id="videoPreview" playsinline webkit-playsinline autoplay muted disablepictureinpicture></video>
+              
+              <!-- Viewfinder overlay -->
+              <div class="viewfinder-overlay">
+                <div class="scan-frame" id="scanFrame">
+                  <span class="corner tl"></span>
+                  <span class="corner tr"></span>
+                  <span class="corner bl"></span>
+                  <span class="corner br"></span>
+                  <div class="laser-line"></div>
+                  <div class="scan-hint">Đặt mã vạch vào khung này</div>
+                </div>
               </div>
-              <h3 id="cameraStatusTitle">Cần cấp quyền Camera</h3>
-              <p id="cameraStatusDesc">Nhấn nút bên dưới để mở camera quét mã tự động.</p>
-              <button id="btnStartCamera" class="btn-primary">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-                Bật Camera Quét Mã
-              </button>
-            </div>
-          </div>
 
-          <!-- Drag & drop indicator overlay -->
-          <div id="dragDropOverlay" class="drag-drop-overlay hidden">
-            <div class="drag-drop-content">
-              <div class="drag-icon-pulse">
-                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="17 8 12 3 7 8"></polyline>
-                  <line x1="12" y1="3" x2="12" y2="15"></line>
-                </svg>
+              <!-- Camera status / Permission request placeholder -->
+              <div id="cameraPlaceholder" class="camera-placeholder">
+                <div class="placeholder-content">
+                  <div class="placeholder-icon">
+                    <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                      <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                  </div>
+                  <h3 id="cameraStatusTitle">Cần cấp quyền Camera</h3>
+                  <p id="cameraStatusDesc">Nhấn nút bên dưới để mở camera quét mã tự động.</p>
+                  <button id="btnStartCamera" class="btn-primary">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    Bật Camera Quét Mã
+                  </button>
+                </div>
               </div>
-              <h3>Thả ảnh vào đây để quét</h3>
-              <p>Hệ thống sẽ tự nhận diện và tít mã vạch</p>
+
+              <!-- Drag & drop indicator overlay -->
+              <div id="dragDropOverlay" class="drag-drop-overlay hidden">
+                <div class="drag-drop-content">
+                  <div class="drag-icon-pulse">
+                    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="17 8 12 3 7 8"></polyline>
+                      <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                  </div>
+                  <h3>Thả ảnh vào đây để quét</h3>
+                  <p>Hệ thống sẽ tự nhận diện và tít mã vạch</p>
+                </div>
+              </div>
+
+              <!-- In-camera floating controls -->
+              <div class="camera-controls">
+                <button id="btnToggleFlash" class="cam-btn" title="Bật/Tắt đèn Flash" style="display: none;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                  </svg>
+                  <span>Flash</span>
+                </button>
+                <button id="btnSwitchCamera" class="cam-btn" title="Đổi camera">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 10c0-4.418-3.582-8-8-8s-8 3.582-8 8c0 1.57.457 3.033 1.246 4.267L3 17h5v-5l-2.038 2.038A5.96 5.96 0 0 1 6 10c0-3.314 2.686-6 6-6s6 2.686 6 6c0 1.258-.389 2.426-1.05 3.393l1.442 1.442A7.95 7.95 0 0 0 20 10z"/>
+                  </svg>
+                  <span>Đổi cam</span>
+                </button>
+                <button id="btnPasteImage" class="cam-btn" title="Dán ảnh từ bộ nhớ tạm (Ctrl+V)">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                  </svg>
+                  <span>Dán ảnh</span>
+                </button>
+                <label class="cam-btn upload-btn" title="Quét từ file ảnh">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                  </svg>
+                  <span>Chọn ảnh</span>
+                  <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                </label>
+              </div>
+            </div>
+
+            <!-- Latest Scanned Result Banner -->
+            <div id="latestResultBanner" class="latest-result-banner hidden">
+              <div class="result-badge">
+                <span class="badge-dot"></span>
+                <span>Vừa tít được</span>
+              </div>
+              <div class="result-value" id="latestResultValue">---</div>
+              <div class="result-meta" id="latestResultMeta">Đã lưu vào bộ nhớ & sao chép</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Desktop Quick Shortcuts Guide -->
+        <div class="quick-hints">
+          <div class="hint-item">
+            <kbd>Ctrl + V</kbd> <span>Dán ảnh quét ngay</span>
+          </div>
+          <div class="hint-item">
+            <span>🖱️ Kéo thả ảnh trực tiếp vào màn hình</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cột Phải: Thống kê & Danh sách Lịch sử quét mã -->
+      <div class="layout-right">
+        <!-- Quick Stat Bar -->
+        <section class="stats-bar">
+          <div class="stat-pill">
+            <span class="stat-label">Tổng đã tít:</span>
+            <span class="stat-num" id="statTotalCount">0</span>
+          </div>
+          <div class="stat-pill">
+            <span class="stat-label">Mã duy nhất:</span>
+            <span class="stat-num" id="statUniqueCount">0</span>
+          </div>
+          <div class="stats-actions">
+            <button id="btnCopyAll" class="btn-subtle" title="Sao chép toàn bộ danh sách">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              Copy tất cả
+            </button>
+            <button id="btnExportMenu" class="btn-subtle" title="Xuất file">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Xuất file
+            </button>
+          </div>
+        </section>
+
+        <!-- Scanned History Section -->
+        <section class="history-section">
+          <div class="history-header">
+            <h2>Lịch sử quét mã</h2>
+            <div class="history-tools">
+              <input type="text" id="searchInput" placeholder="Tìm mã..." class="search-input">
+              <button id="btnClearHistory" class="btn-danger-text" title="Xóa lịch sử">Xóa hết</button>
             </div>
           </div>
 
-          <!-- In-camera floating controls -->
-          <div class="camera-controls">
-            <button id="btnToggleFlash" class="cam-btn" title="Bật/Tắt đèn Flash" style="display: none;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-              </svg>
-              <span>Flash</span>
-            </button>
-            <button id="btnSwitchCamera" class="cam-btn" title="Đổi camera">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M20 10c0-4.418-3.582-8-8-8s-8 3.582-8 8c0 1.57.457 3.033 1.246 4.267L3 17h5v-5l-2.038 2.038A5.96 5.96 0 0 1 6 10c0-3.314 2.686-6 6-6s6 2.686 6 6c0 1.258-.389 2.426-1.05 3.393l1.442 1.442A7.95 7.95 0 0 0 20 10z"/>
-              </svg>
-              <span>Đổi cam</span>
-            </button>
-            <button id="btnPasteImage" class="cam-btn" title="Dán ảnh từ bộ nhớ tạm (Ctrl+V)">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-              </svg>
-              <span>Dán ảnh</span>
-            </button>
-            <label class="cam-btn upload-btn" title="Quét từ file ảnh">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                <circle cx="8.5" cy="8.5" r="1.5"/>
-                <polyline points="21 15 16 10 5 21"/>
-              </svg>
-              <span>Chọn ảnh</span>
-              <input type="file" id="fileInput" accept="image/*" style="display: none;">
-            </label>
+          <div id="historyList" class="history-list">
+            <!-- Rendered items go here -->
           </div>
-        </div>
 
-        <!-- Latest Scanned Result Banner -->
-        <div id="latestResultBanner" class="latest-result-banner hidden">
-          <div class="result-badge">
-            <span class="badge-dot"></span>
-            <span>Vừa tít được</span>
+          <div id="emptyState" class="empty-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+              <path d="M3 5v4M3 15v4M21 5v4M21 15v4M7 5v14M11 5v14M15 5v14M17 5v14"/>
+            </svg>
+            <p>Chưa có mã nào được quét.</p>
+            <small>Hướng camera vào mã vạch trên áo hoặc kéo thả / dán ảnh vào để bắt đầu tít!</small>
           </div>
-          <div class="result-value" id="latestResultValue">---</div>
-          <div class="result-meta" id="latestResultMeta">Đã lưu vào bộ nhớ & sao chép</div>
-        </div>
+        </section>
       </div>
-    </section>
-
-    <!-- Quick Stat Bar -->
-    <section class="stats-bar">
-      <div class="stat-pill">
-        <span class="stat-label">Tổng đã tít:</span>
-        <span class="stat-num" id="statTotalCount">0</span>
-      </div>
-      <div class="stat-pill">
-        <span class="stat-label">Mã duy nhất:</span>
-        <span class="stat-num" id="statUniqueCount">0</span>
-      </div>
-      <div class="stats-actions">
-        <button id="btnCopyAll" class="btn-subtle" title="Sao chép toàn bộ danh sách">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-          </svg>
-          Copy tất cả
-        </button>
-        <button id="btnExportMenu" class="btn-subtle" title="Xuất file">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          Xuất file
-        </button>
-      </div>
-    </section>
-
-    <!-- Scanned History Section -->
-    <section class="history-section">
-      <div class="history-header">
-        <h2>Lịch sử quét mã</h2>
-        <div class="history-tools">
-          <input type="text" id="searchInput" placeholder="Tìm mã..." class="search-input">
-          <button id="btnClearHistory" class="btn-danger-text" title="Xóa lịch sử">Xóa hết</button>
-        </div>
-      </div>
-
-      <div id="historyList" class="history-list">
-        <!-- Rendered items go here -->
-      </div>
-
-      <div id="emptyState" class="empty-state">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+    </main>
           <path d="M3 5v4M3 15v4M21 5v4M21 15v4M7 5v14M11 5v14M15 5v14M17 5v14"/>
         </svg>
         <p>Chưa có mã nào được quét.</p>
