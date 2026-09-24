@@ -251,6 +251,63 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Drag & Drop Overlay */
+.drag-drop-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 15, 29, 0.92);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+  z-index: 10;
+  border: 3px dashed var(--accent);
+  border-radius: var(--radius-lg);
+  animation: fadeIn 0.15s ease-out;
+}
+
+.drag-drop-overlay.hidden {
+  display: none !important;
+}
+
+.drag-icon-pulse {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 12px auto;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.18);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 25px var(--accent-glow);
+  animation: bounce 1.2s infinite ease-in-out;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.drag-drop-content h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.drag-drop-content p {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.scanner-card.drag-active {
+  box-shadow: 0 0 30px var(--accent-glow);
+  border-color: var(--accent);
+}
+
 /* Camera Placeholder (When paused or unpermitted) */
 .camera-placeholder {
   position: absolute;

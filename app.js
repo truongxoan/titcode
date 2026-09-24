@@ -259,22 +259,87 @@ async function toggleTorch() {
   }
 }
 
-// Quét mã từ ảnh tải lên
-async function scanFromImageFile(file) {
-  if (!file) return;
-  try {
-    if (!codeReader) initBarcodeReader();
-    const imgUrl = URL.createObjectURL(file);
-    const result = await codeReader.decodeFromImageUrl(imgUrl);
-    if (result) {
-      handleScannedBarcode(result.getText());
-      showToast('✅ Quét mã từ ảnh thành công!');
+// Quét mã từ ảnh (hỗ trợ File, Blob, Clipboard, Drag & Drop và tự xoay đa hướng)
+async function scanFromImageBlob(blob) {
+  if (!blob) return;
+  getAudioContext();
+  showToast('🔍 Đang phân tích ảnh mã vạch...');
+
+  const objectUrl = URL.createObjectURL(blob);
+  const img = new Image();
+
+  img.onload = async () => {
+    try {
+      if (!codeReader) initBarcodeReader();
+
+      // 1. Thử quét trực tiếp ảnh gốc
+      try {
+        const result = await codeReader.decodeFromImageUrl(objectUrl);
+        if (result && result.getText()) {
+          handleScannedBarcode(result.getText());
+          showToast('✅ Tít mã thành công!');
+          URL.revokeObjectURL(objectUrl);
+          return;
+        }
+      } catch (e) {
+        // Tiếp tục thử xoay góc nếu ảnh chụp dọc
+      }
+
+      // 2. Thử xoay ảnh qua các góc 90°, 270°, 180° (đặc biệt hiệu quả cho tem quần áo chụp dọc)
+      const angles = [90, 270, 180];
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      for (const angle of angles) {
+        if (angle === 90 || angle === 270) {
+          canvas.width = img.naturalHeight || img.height;
+          canvas.height = img.naturalWidth || img.width;
+        } else {
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((angle * Math.PI) / 180);
+        ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+        ctx.restore();
+
+        try {
+          const rotatedUrl = canvas.toDataURL('image/jpeg', 0.95);
+          const result = await codeReader.decodeFromImageUrl(rotatedUrl);
+          if (result && result.getText()) {
+            handleScannedBarcode(result.getText());
+            showToast(`✅ Tít mã thành công (xoay ${angle}°)!`);
+            URL.revokeObjectURL(objectUrl);
+            return;
+          }
+        } catch (e) {
+          // Thử góc tiếp theo
+        }
+      }
+
+      showToast('⚠️ Không tìm thấy mã vạch trong ảnh này');
+    } catch (err) {
+      console.error('Image scan failed:', err);
+      showToast('⚠️ Lỗi khi phân tích ảnh');
+    } finally {
+      URL.revokeObjectURL(objectUrl);
     }
-    URL.revokeObjectURL(imgUrl);
-  } catch (err) {
-    console.error('Image scan failed:', err);
-    showToast('⚠️ Không tìm thấy mã vạch trong ảnh này');
-  }
+  };
+
+  img.onerror = () => {
+    URL.revokeObjectURL(objectUrl);
+    showToast('❌ Không thể mở định dạng hình ảnh này');
+  };
+
+  img.src = objectUrl;
+}
+
+// Hàm tương thích ngược
+async function scanFromImageFile(file) {
+  return scanFromImageBlob(file);
 }
 
 // Xử lý khi bắt được một mã vạch
@@ -644,11 +709,63 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btnSwitchCamera').addEventListener('click', switchCamera);
   document.getElementById('btnToggleFlash').addEventListener('click', toggleTorch);
   
+  // Quét từ nút Chọn file ảnh
   document.getElementById('fileInput').addEventListener('change', (e) => {
     if (e.target.files && e.target.files[0]) {
-      scanFromImageFile(e.target.files[0]);
+      scanFromImageBlob(e.target.files[0]);
     }
   });
+
+  // Nút Dán ảnh từ bộ nhớ tạm (Clipboard)
+  document.getElementById('btnPasteImage').addEventListener('click', async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.read) {
+        const clipboardItems = await navigator.clipboard.read();
+        for (const item of clipboardItems) {
+          const imageType = item.types.find(type => type.startsWith('image/'));
+          if (imageType) {
+            const blob = await item.getType(imageType);
+            showToast('📋 Đang quét ảnh dán từ khay nhớ...');
+            await scanFromImageBlob(blob);
+            return;
+          }
+        }
+        showToast('⚠️ Không tìm thấy ảnh trong bộ nhớ tạm. Hãy copy ảnh trước!');
+      } else {
+        showToast('👉 Hãy nhấn phím Ctrl + V trên máy tính để dán ảnh!');
+      }
+    } catch (err) {
+      console.warn('Clipboard read permission denied or unsupported:', err);
+      showToast('👉 Hãy bấm Ctrl + V trên bàn phím để dán ảnh trực tiếp');
+    }
+  });
+
+  // Lắng nghe sự kiện Paste (Ctrl + V) toàn trang
+  window.addEventListener('paste', async (e) => {
+    // Không can thiệp nếu đang gõ chữ trong ô tìm kiếm
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+      return;
+    }
+
+    const clipboardData = e.clipboardData || window.clipboardData;
+    if (!clipboardData || !clipboardData.items) return;
+
+    const items = clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const blob = items[i].getAsFile();
+        if (blob) {
+          e.preventDefault();
+          showToast('📋 Nhận ảnh từ lệnh dán (Ctrl+V)...');
+          await scanFromImageBlob(blob);
+          return;
+        }
+      }
+    }
+  });
+
+  // Thiết lập tính năng Kéo thả ảnh (Drag & Drop)
+  setupDragAndDrop();
 
   // Bật/tắt nhanh âm thanh
   document.getElementById('btnSoundToggle').addEventListener('click', () => {
@@ -723,3 +840,55 @@ function updateSoundButtonUI() {
     iconOff.classList.remove('hidden');
   }
 }
+
+// Xử lý sự kiện Kéo thả ảnh (Drag and Drop)
+function setupDragAndDrop() {
+  const overlay = document.getElementById('dragDropOverlay');
+  const card = document.querySelector('.scanner-card');
+  if (!overlay || !card) return;
+
+  let dragCounter = 0;
+
+  // Ngăn chặn hành vi mặc định mở ảnh của trình duyệt
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    window.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    }, false);
+  });
+
+  window.addEventListener('dragenter', (e) => {
+    dragCounter++;
+    if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files')) {
+      overlay.classList.remove('hidden');
+      card.classList.add('drag-active');
+    }
+  });
+
+  window.addEventListener('dragleave', (e) => {
+    dragCounter--;
+    if (dragCounter <= 0) {
+      dragCounter = 0;
+      overlay.classList.add('hidden');
+      card.classList.remove('drag-active');
+    }
+  });
+
+  window.addEventListener('drop', async (e) => {
+    dragCounter = 0;
+    overlay.classList.add('hidden');
+    card.classList.remove('drag-active');
+
+    const dt = e.dataTransfer;
+    if (dt && dt.files && dt.files.length > 0) {
+      const file = dt.files[0];
+      if (file.type.startsWith('image/')) {
+        showToast('📥 Đã nhận ảnh kéo thả...');
+        await scanFromImageBlob(file);
+      } else {
+        showToast('⚠️ Vui lòng thả file hình ảnh (JPG, PNG, WebP)');
+      }
+    }
+  });
+}
+

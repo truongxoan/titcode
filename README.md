@@ -16,10 +16,14 @@
    - Xuất file **Excel (.CSV)** có tiếng Việt và ngày giờ chi tiết.
    - Xuất file **Văn bản (.TXT)** mỗi mã 1 dòng.
    - Nút "Copy tất cả" một chạm.
-6. **Hỗ trợ công cụ kho**:
+6. **Dán ảnh & Kéo thả ảnh (Mới)**:
+   - **Dán ảnh (Paste - Ctrl+V)**: Chỉ cần bấm copy ảnh (hoặc chụp màn hình) rồi ấn nút **"Dán ảnh"** hoặc nhấn phím `Ctrl + V` bất kỳ lúc nào để web tự động trích xuất mã vạch.
+   - **Kéo thả ảnh (Drag & Drop)**: Nắm kéo file ảnh từ máy tính hoặc tab khác thả thẳng vào màn hình để quét.
+   - **Tự động xoay đa hướng (0°, 90°, 180°, 270°)**: Giúp nhận diện chuẩn xác cả những ảnh chụp tem áo thẳng đứng hay xoay ngang.
+7. **Hỗ trợ công cụ kho**:
    - Nút bật/tắt **Đèn Flash (Torch)** khi quét trong góc tối.
    - Đổi camera Trước / Sau.
-   - Tải ảnh từ thư viện để quét nếu tem bị mờ hoặc bóng.
+   - Chọn file ảnh từ bộ sưu tập.
 
 ---
 
