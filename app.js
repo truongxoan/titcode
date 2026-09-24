@@ -141,6 +141,43 @@ function getFormatName(format) {
 
 // Khởi tạo Barcode & QR Reader (ZXing) hỗ trợ TẤT CẢ các loại mã
 let codeReader = null;
+let nativeBarcodeDetector = null;
+let nativeScanTimer = null;
+let diagonalVideoSamplerTimer = null;
+
+// Bảng ánh xạ định dạng chuẩn từ Native BarcodeDetector sang tên hiển thị
+const NATIVE_FORMAT_MAP = {
+  'qr_code': 'QR Code',
+  'code_128': 'Code 128',
+  'code_39': 'Code 39',
+  'code_93': 'Code 93',
+  'ean_13': 'EAN-13',
+  'ean_8': 'EAN-8',
+  'upc_a': 'UPC-A',
+  'upc_e': 'UPC-E',
+  'data_matrix': 'Data Matrix',
+  'aztec': 'Aztec',
+  'pdf417': 'PDF 417',
+  'itf': 'ITF',
+  'codabar': 'Codabar'
+};
+
+// Khởi tạo BarcodeDetector phần cứng (hỗ trợ quét mọi góc nghiêng 360° tức thì trên Chrome/Android/iOS 17)
+async function initNativeBarcodeDetector() {
+  if ('BarcodeDetector' in window) {
+    try {
+      const supported = await window.BarcodeDetector.getSupportedFormats();
+      const desired = Object.keys(NATIVE_FORMAT_MAP);
+      const available = desired.filter(f => supported.includes(f));
+      if (available.length > 0) {
+        nativeBarcodeDetector = new window.BarcodeDetector({ formats: available });
+        console.log('🚀 Native BarcodeDetector (Quét đa hướng 360° GPU) kích hoạt:', available);
+      }
+    } catch (e) {
+      console.warn('Native BarcodeDetector không khả dụng:', e);
+    }
+  }
+}
 
 function initBarcodeReader() {
   if (window.ZXing && window.ZXing.BrowserMultiFormatReader) {
@@ -167,10 +204,12 @@ function initBarcodeReader() {
     hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
 
     codeReader = new window.ZXing.BrowserMultiFormatReader(hints);
-    console.log('✅ Đã nạp thành công bộ giải mã QR Code & Tất cả mã vạch 1D/2D');
+    console.log('✅ Đã nạp bộ giải mã QR Code & Mã vạch đa hướng');
   } else {
     console.error('ZXing library not loaded yet');
   }
+
+  initNativeBarcodeDetector();
 }
 
 // Lấy danh sách camera và ưu tiên camera sau (cho cả iPhone, Android và Laptop)
@@ -207,7 +246,7 @@ async function setupCameras() {
   }
 }
 
-// Khởi động Camera và bắt đầu quét
+// Khởi động Camera và bắt đầu quét đa hướng
 async function startCamera() {
   getAudioContext();
 
@@ -235,7 +274,7 @@ async function startCamera() {
 
     const videoElem = document.getElementById('videoPreview');
 
-    // Decode từ video stream hỗ trợ cả QR và tất cả mã vạch
+    // Decode từ video stream (ZXing đa định dạng)
     await codeReader.decodeFromVideoDevice(
       state.selectedDeviceId,
       videoElem,
@@ -244,14 +283,14 @@ async function startCamera() {
           const format = getFormatName(result.getBarcodeFormat());
           handleScannedBarcode(result.getText(), format);
         }
-        if (err && !(err instanceof ZXing.NotFoundException)) {
-          // Bỏ qua lỗi frame rỗng
-        }
       }
     );
 
     state.isCameraActive = true;
     setTimeout(checkTorchCapability, 600);
+
+    // Kích hoạt quét đa góc nghiêng phần cứng (Native BarcodeDetector) nếu trình duyệt hỗ trợ
+    startLiveOmnidirectionalScanner(videoElem);
 
   } catch (err) {
     console.error('Camera start failed:', err);
@@ -263,8 +302,70 @@ async function startCamera() {
   }
 }
 
+// Vòng lặp quét nghiêng chéo 360 độ từ Camera trực tiếp
+function startLiveOmnidirectionalScanner(videoElem) {
+  stopLiveOmnidirectionalScanner();
+
+  if (nativeBarcodeDetector) {
+    // Nếu có Native BarcodeDetector (Chrome Android, Safari iOS): nhận diện mọi góc xoay trong 5-15ms!
+    nativeScanTimer = setInterval(async () => {
+      if (!state.isCameraActive || videoElem.readyState < 2) return;
+      try {
+        const barcodes = await nativeBarcodeDetector.detect(videoElem);
+        if (barcodes && barcodes.length > 0) {
+          const item = barcodes[0];
+          const formatName = NATIVE_FORMAT_MAP[item.format] || item.format || 'Mã vạch';
+          handleScannedBarcode(item.rawValue, formatName);
+        }
+      } catch (e) {}
+    }, 75);
+  } else {
+    // Dự phòng cho máy tính hoặc trình duyệt cũ: lấy mẫu khung hình và xoay chéo 45 độ
+    const sampleCanvas = document.createElement('canvas');
+    const sampleCtx = sampleCanvas.getContext('2d');
+    let diagonalFlip = false;
+
+    diagonalVideoSamplerTimer = setInterval(async () => {
+      if (!state.isCameraActive || videoElem.readyState < 2 || !codeReader) return;
+      try {
+        const vw = videoElem.videoWidth || 640;
+        const vh = videoElem.videoHeight || 480;
+        sampleCanvas.width = 480;
+        sampleCanvas.height = 480;
+        sampleCtx.clearRect(0, 0, 480, 480);
+        sampleCtx.save();
+        sampleCtx.translate(240, 240);
+        // Luân phiên kiểm tra góc 45 độ và 135 độ
+        diagonalFlip = !diagonalFlip;
+        sampleCtx.rotate((diagonalFlip ? 45 : 135) * Math.PI / 180);
+        sampleCtx.drawImage(videoElem, -240, -240, 480, 480);
+        sampleCtx.restore();
+
+        const dataUrl = sampleCanvas.toDataURL('image/jpeg', 0.8);
+        const res = await codeReader.decodeFromImageUrl(dataUrl);
+        if (res && res.getText()) {
+          const format = getFormatName(res.getBarcodeFormat());
+          handleScannedBarcode(res.getText(), format);
+        }
+      } catch (e) {}
+    }, 280);
+  }
+}
+
+function stopLiveOmnidirectionalScanner() {
+  if (nativeScanTimer) {
+    clearInterval(nativeScanTimer);
+    nativeScanTimer = null;
+  }
+  if (diagonalVideoSamplerTimer) {
+    clearInterval(diagonalVideoSamplerTimer);
+    diagonalVideoSamplerTimer = null;
+  }
+}
+
 // Dừng Camera
 function stopCamera() {
+  stopLiveOmnidirectionalScanner();
   if (codeReader) {
     codeReader.reset();
   }
@@ -328,11 +429,11 @@ async function toggleTorch() {
   }
 }
 
-// Quét mã từ ảnh (hỗ trợ File, Blob, Clipboard, Drag & Drop và tự xoay đa hướng)
+// Quét mã từ ảnh: Hỗ trợ ảnh xoay nghiêng chéo mọi góc 0-360 độ (File, Paste, Drag & Drop)
 async function scanFromImageBlob(blob) {
   if (!blob) return;
   getAudioContext();
-  showToast('🔍 Đang phân tích ảnh mã vạch / QR Code...');
+  showToast('🔍 Đang phân tích mọi góc nghiêng 360°...');
 
   const objectUrl = URL.createObjectURL(blob);
   const img = new Image();
@@ -341,7 +442,22 @@ async function scanFromImageBlob(blob) {
     try {
       if (!codeReader) initBarcodeReader();
 
-      // 1. Thử quét trực tiếp ảnh gốc
+      // BƯỚC 1: Quét bằng Native BarcodeDetector (nhận diện mọi góc nghiêng chéo ngay lập tức nếu trình duyệt có)
+      if (nativeBarcodeDetector) {
+        try {
+          const results = await nativeBarcodeDetector.detect(img);
+          if (results && results.length > 0) {
+            const b = results[0];
+            const formatName = NATIVE_FORMAT_MAP[b.format] || b.format || 'Mã vạch';
+            handleScannedBarcode(b.rawValue, formatName);
+            showToast(`✅ Đã tít: ${formatName}!`);
+            URL.revokeObjectURL(objectUrl);
+            return;
+          }
+        } catch (e) {}
+      }
+
+      // BƯỚC 2: Thử quét ảnh gốc trực tiếp
       try {
         const result = await codeReader.decodeFromImageUrl(objectUrl);
         if (result && result.getText()) {
@@ -351,47 +467,87 @@ async function scanFromImageBlob(blob) {
           URL.revokeObjectURL(objectUrl);
           return;
         }
-      } catch (e) {
-        // Tiếp tục thử xoay góc nếu ảnh chụp dọc
+      } catch (e) {}
+
+      // BƯỚC 3: Thu nhỏ ảnh nếu kích thước quá lớn (ảnh chụp 12MP/48MP trên điện thoại) để quét chuẩn xác hơn
+      const maxDim = 1400;
+      let targetW = img.naturalWidth || img.width;
+      let targetH = img.naturalHeight || img.height;
+      if (targetW > maxDim || targetH > maxDim) {
+        const ratio = Math.min(maxDim / targetW, maxDim / targetH);
+        targetW = Math.round(targetW * ratio);
+        targetH = Math.round(targetH * ratio);
       }
 
-      // 2. Thử xoay ảnh qua các góc 90°, 270°, 180° (đặc biệt hiệu quả cho tem quần áo chụp dọc)
-      const angles = [90, 270, 180];
+      // Danh sách các góc xoay nghiêng quét toàn diện 360° (Thẳng đứng, vuông góc, xiên 45°, 30°, 60°, 15°...)
+      const sweepAngles = [
+        90, 270, 180,              // Thẳng đứng và ngược
+        45, 135, 225, 315,         // Góc chéo 45 độ
+        30, 60, 120, 150,          // Góc nghiêng 30 & 60 độ
+        15, 75, 105, 165           // Góc xiên nhẹ
+      ];
+
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
-      for (const angle of angles) {
-        if (angle === 90 || angle === 270) {
-          canvas.width = img.naturalHeight || img.height;
-          canvas.height = img.naturalWidth || img.width;
-        } else {
-          canvas.width = img.naturalWidth || img.width;
-          canvas.height = img.naturalHeight || img.height;
-        }
+      for (const angle of sweepAngles) {
+        const rad = (angle * Math.PI) / 180;
+        // Tính toán kích thước canvas để không bị cắt xén khi xoay
+        const sin = Math.abs(Math.sin(rad));
+        const cos = Math.abs(Math.cos(rad));
+        canvas.width = Math.round(targetW * cos + targetH * sin);
+        canvas.height = Math.round(targetW * sin + targetH * cos);
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.save();
         ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate((angle * Math.PI) / 180);
-        ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+        ctx.rotate(rad);
+        ctx.drawImage(img, -targetW / 2, -targetH / 2, targetW, targetH);
         ctx.restore();
 
         try {
-          const rotatedUrl = canvas.toDataURL('image/jpeg', 0.95);
+          const rotatedUrl = canvas.toDataURL('image/jpeg', 0.92);
           const result = await codeReader.decodeFromImageUrl(rotatedUrl);
           if (result && result.getText()) {
             const format = getFormatName(result.getBarcodeFormat());
             handleScannedBarcode(result.getText(), format);
-            showToast(`✅ Đã tít: ${format} (xoay ${angle}°)!`);
+            showToast(`✅ Đã tít: ${format} (nghiêng ${angle}°)!`);
             URL.revokeObjectURL(objectUrl);
             return;
           }
-        } catch (e) {
-          // Thử góc tiếp theo
-        }
+        } catch (e) {}
       }
 
-      showToast('⚠️ Không tìm thấy mã vạch hoặc QR Code trong ảnh này');
+      // BƯỚC 4: Tăng cường độ tương phản (Contrast Stretch) cho các ảnh tem bị bóng hoặc tối
+      try {
+        canvas.width = targetW;
+        canvas.height = targetH;
+        ctx.clearRect(0, 0, targetW, targetH);
+        ctx.drawImage(img, 0, 0, targetW, targetH);
+        const imgData = ctx.getImageData(0, 0, targetW, targetH);
+        const d = imgData.data;
+        for (let i = 0; i < d.length; i += 4) {
+          // Grayscale & contrast enhancement
+          const gray = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+          const enhanced = gray > 140 ? 255 : (gray < 85 ? 0 : gray);
+          d[i] = enhanced;
+          d[i + 1] = enhanced;
+          d[i + 2] = enhanced;
+        }
+        ctx.putImageData(imgData, 0, 0);
+
+        const contrastUrl = canvas.toDataURL('image/jpeg', 0.95);
+        const result = await codeReader.decodeFromImageUrl(contrastUrl);
+        if (result && result.getText()) {
+          const format = getFormatName(result.getBarcodeFormat());
+          handleScannedBarcode(result.getText(), format);
+          showToast(`✅ Đã tít: ${format} (lọc tương phản)!`);
+          URL.revokeObjectURL(objectUrl);
+          return;
+        }
+      } catch (e) {}
+
+      showToast('⚠️ Không tìm thấy mã trong ảnh (hãy thử chụp cận cảnh mã hơn)');
     } catch (err) {
       console.error('Image scan failed:', err);
       showToast('⚠️ Lỗi khi phân tích ảnh');
